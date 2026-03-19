@@ -1,0 +1,20 @@
+# Dependency directories (Thư viện)
+node_modules/
+
+# Environment variables (Bảo mật mật khẩu)
+.env
+.env.local
+.env.production
+
+# Logs (Nhật ký lỗi)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files (File rác hệ điều hành)
+.DS_Store
+Thumbs.db
+
+# Build files (Nếu có dùng frontend framework)
+dist/
+build/
