@@ -35,7 +35,7 @@ const userRoutes = require("./routes/userRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/exams", examRoutes); // Sửa lại path để khớp với lỗi "exams/my-exams" trong console của bạn
-app.use("/api/chat", chatRoutes);
+app.use("/chat", chatRoutes);
 app.use("/users", userRoutes); // Sửa lại path để khớp với ProfilePage
 
 app.use((req, res) => {
