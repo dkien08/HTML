@@ -1,6 +1,5 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Dùng chung Key với bên Exam (nhớ đảm bảo Key đã hoạt động tốt như lúc nãy)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite",
   systemInstruction: "Chỉ trả lời nội dung chính, ngắn gọn và dễ hiểu"
@@ -14,8 +13,6 @@ exports.askChatbot = async (req, res) => {
       return res.status(400).json({ message: "Bạn chưa nhập câu hỏi!" });
     }
 
-    // --- CẤU HÌNH PROMPT MỚI (TOÀN DIỆN HƠN) ---
-    // Thay vì ép AI làm "giáo viên IT", ta bảo nó làm "Trợ lý học tập đa năng"
     const prompt = `
             Bạn là một Trợ lý AI học tập thông minh, thân thiện và hiểu biết rộng.
             Nhiệm vụ của bạn là hỗ trợ người dùng giải đáp thắc mắc trong mọi lĩnh vực (Khoa học, Xã hội, Lịch sử, Ngoại ngữ, Công nghệ, Kỹ năng sống...).
@@ -40,7 +37,6 @@ exports.askChatbot = async (req, res) => {
     });
   } catch (err) {
     console.error("Lỗi Chatbot:", err);
-    // Fallback: Trả về lỗi thân thiện
     res.status(500).json({
       message: "Trợ lý AI đang nghỉ ngơi một chút, bạn thử lại sau nhé!",
     });

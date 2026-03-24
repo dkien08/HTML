@@ -1,14 +1,8 @@
 const jwt = require("jsonwebtoken");
-const SECRET_KEY = "my_super_secret_key_123";
+const SECRET_KEY = process.env.JWT_SECRET;
 
-/**
- * Middleware xác thực JWT
- * - Kiểm tra Header Authorization
- * - Verify Token
- * - Gán thông tin user đã giải mã vào req.user
- */
 const verifyToken = (req, res, next) => {
-  // Lấy token từ header (Format chuẩn: "Bearer <token>")
+
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -25,8 +19,6 @@ const verifyToken = (req, res, next) => {
         message: "Invalid Token: Token không hợp lệ hoặc đã hết hạn.",
       });
     }
-
-    // Token hợp lệ -> Lưu payload (id, role) vào request để controller sử dụng
     req.user = decoded;
     next();
   });

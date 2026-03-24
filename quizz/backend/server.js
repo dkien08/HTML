@@ -6,7 +6,7 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://quizzapp-front.onrender.com", // Thêm trực tiếp domain frontend để tránh lỗi biến môi trường
+  "https://quizzapp-front.onrender.com",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -34,9 +34,9 @@ const chatRoutes = require("./routes/chatRoutes");
 const userRoutes = require("./routes/userRoutes");
 
 app.use("/api/auth", authRoutes);
-app.use("/exams", examRoutes); // Sửa lại path để khớp với lỗi "exams/my-exams" trong console của bạn
+app.use("/exams", examRoutes);
 app.use("/chat", chatRoutes);
-app.use("/users", userRoutes); // Sửa lại path để khớp với ProfilePage
+app.use("/users", userRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Đường dẫn không tồn tại!" });
@@ -44,5 +44,5 @@ app.use((req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`🚀 Server đang chạy tại: ${port}`);
+  console.log(`Server đang chạy tại: ${port}`);
 });

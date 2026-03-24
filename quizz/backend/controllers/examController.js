@@ -6,7 +6,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite",
   systemInstruction: "Bạn là trợ lý tạo câu hỏi Quiz. Chỉ trả lời nội dung chính, không chào hỏi, không giải thích dài dòng. Phản hồi dưới dạng JSON."
- }); // Giữ nguyên theo ý bạn
+ });
 
 function generateExamCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -163,66 +163,41 @@ exports.importQuestionsFromExcel = async (req, res) => {
   const connection = await db.getConnection();
   try {
     const { exam_id } = req.body;
-    const file = req.file;
-    if (!exam_id || !file) {
-      connection.release();
-      return res.status(400).json({ message: "Thiếu dữ liệu!" });
-    }
+    if (!exam_id || !req.file) return res.status(400).json({ message: "Thiếu dữ liệu!" });
 
-    const workbook = xlsx.read(file.buffer, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const data = xlsx.utils.sheet_to_json(sheet, { header: "A", range: 1 });
+    const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+    const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: "A", range: 1 });
 
     await connection.beginTransaction();
     let count = 0;
     for (const row of data) {
       const qText = row["A"];
-      const correctChar = row["F"]
-        ? row["F"].toString().trim().toUpperCase()
-        : "";
-      if (!qText || !correctChar) continue;
+      const char = row["F"]?.toString().trim().toUpperCase() || "";
+      if (!qText || !char) continue;
 
-      const [qResult] = await connection.query(
-        "INSERT INTO questions (exam_id, question_text) VALUES (?, ?)",
-        [exam_id, qText],
-      );
-      const newQId = qResult.insertId;
-      const options = [
-        {
-          text: row["B"],
-          isCorrect: correctChar === "A" || correctChar === "1",
-        },
-        {
-          text: row["C"],
-          isCorrect: correctChar === "B" || correctChar === "2",
-        },
-        {
-          text: row["D"],
-          isCorrect: correctChar === "C" || correctChar === "3",
-        },
-        {
-          text: row["E"],
-          isCorrect: correctChar === "D" || correctChar === "4",
-        },
+      const [qRes] = await connection.query("INSERT INTO questions (exam_id, question_text) VALUES (?, ?)", [exam_id, qText]);
+      
+      const optionsValues = [
+        [qRes.insertId, row["B"], char === "A" || char === "1"],
+        [qRes.insertId, row["C"], char === "B" || char === "2"],
+        [qRes.insertId, row["D"], char === "C" || char === "3"],
+        [qRes.insertId, row["E"], char === "D" || char === "4"]
       ];
-      const optionsValues = options.map((o) => [newQId, o.text, o.isCorrect]);
-      await connection.query(
-        "INSERT INTO options (question_id, option_text, is_correct) VALUES ?",
-        [optionsValues],
-      );
+      
+      await connection.query("INSERT INTO options (question_id, option_text, is_correct) VALUES ?", [optionsValues]);
       count++;
     }
     await connection.commit();
-    connection.release();
-    return res.json({ message: `Đã nhập ${count} câu hỏi!` });
+    res.json({ message: `Đã nhập thành công ${count} câu hỏi!` });
   } catch (err) {
-    await connection.rollback();
-    connection.release();
-    return res.status(500).json({ message: "Lỗi import: " + err.message });
+    if (connection) await connection.rollback();
+    res.status(500).json({ message: "Lỗi import: " + err.message });
+  } finally {
+    if (connection) connection.release();
   }
 };
 
-// Các hàm phụ (giữ chỗ)
+// Các hàm phụ
 exports.addQuestion = async (req, res) => {
   res.status(501).json({ message: "Đang cập nhật..." });
 };
@@ -467,12 +442,11 @@ exports.getExamResults = async (req, res) => {
   }
 };
 
-// [GET] Lấy chi tiết bài làm (Từng câu hỏi và đáp án đã chọn)
+// [GET] Lấy chi tiết bài làm
 exports.getExamResultDetail = async (req, res) => {
   try {
-    const { id } = req.params; // Đây là result_id (ID của lượt làm bài)
+    const { id } = req.params;
 
-    // Query phức tạp: Lấy câu hỏi, đáp án thí sinh chọn, và đáp án đúng
     const query = `
             SELECT 
                 q.question_text,
@@ -493,7 +467,7 @@ exports.getExamResultDetail = async (req, res) => {
     res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
-// 👇 ĐÂY LÀ HÀM BẠN CẦN (Đã đặt đúng vị trí)
+//THỐNG KÊ
 exports.getExamStats = async (req, res) => {
   try {
     const { id } = req.params;
@@ -512,7 +486,6 @@ exports.getExamStats = async (req, res) => {
     }
 
     // 2. Lấy thống kê
-    // 👇 SỬA TẠI ĐÂY: Thay u.email bằng u.username (hoặc xóa hẳn dòng đó nếu không cần)
     const query = `
             SELECT 
                 r.id, 
@@ -530,10 +503,9 @@ exports.getExamStats = async (req, res) => {
 
     const [stats] = await db.query(query, [id]);
 
-    // Map dữ liệu để Frontend không bị lỗi hiển thị
     const safeStats = stats.map((s) => ({
       ...s,
-      email: s.username || "Không có", // Gán username vào chỗ email để hiển thị
+      email: s.username || "Không có",
     }));
 
     res.json({
